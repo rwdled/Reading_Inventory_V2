@@ -132,6 +132,100 @@ function Signup({ onSignup, onBack }) {
   );
 }
 
+// Add Book Form Component
+function AddBookForm({ onAddBook, onCancel }) {
+  const [form, setForm] = useState({
+    title: '',
+    author: '',
+    genre: ''
+  });
+
+  const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!form.title || !form.author || !form.genre) {
+      setError('All fields are required');
+      return;
+    }
+
+    setError('');
+    onAddBook(form);
+    // Reset form after successful submission
+    setForm({ title: '', author: '', genre: '' });
+  };
+
+  return (
+    <div className="app-container">
+      <div className="form-container fade-in-up">
+        <h2 className="form-title">Add New Book to Catalog</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">
+              Book Title:
+              <input
+                type="text"
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter book title"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Author:
+              <input
+                type="text"
+                name="author"
+                value={form.author}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter author name"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Genre:
+              <input
+                type="text"
+                name="genre"
+                value={form.genre}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter book genre (e.g., Fiction, Education, etc.)"
+              />
+            </label>
+          </div>
+          {error && <p className="error-message">{error}</p>}
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">
+              Add Book
+            </button>
+            <button type="button" onClick={onCancel} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // Staff/Admin Signup Component
 function StaffSignup({ onSignup, onBack }) {
   const [form, setForm] = useState({
@@ -248,7 +342,7 @@ function StaffSignup({ onSignup, onBack }) {
 // Main App Component
 function App() {
   const [books, setBooks] = useState(booksData);
-  const [currentPage, setCurrentPage] = useState('catalog'); // 'catalog', 'signup', or 'staffSignup'
+  const [currentPage, setCurrentPage] = useState('catalog'); // 'catalog', 'signup', 'staffSignup', or 'addBook'
   const [registeredStudents, setRegisteredStudents] = useState([]);
   const [registeredStaff, setRegisteredStaff] = useState([]);
 
@@ -267,6 +361,17 @@ function App() {
     setCurrentPage('catalog'); // Return to catalog after signup
   };
 
+  const handleAddBook = (bookData) => {
+    const newBook = {
+      title: bookData.title,
+      author: bookData.author,
+      Genre: bookData.genre
+    };
+    setBooks([...books, newBook]);
+    alert(`Book "${bookData.title}" by ${bookData.author} has been added to the catalog!`);
+    setCurrentPage('catalog'); // Return to catalog after adding book
+  };
+
   const navigateToSignup = () => {
     setCurrentPage('signup');
   };
@@ -275,9 +380,18 @@ function App() {
     setCurrentPage('staffSignup');
   };
 
+  const navigateToAddBook = () => {
+    setCurrentPage('addBook');
+  };
+
   const navigateToCatalog = () => {
     setCurrentPage('catalog');
   };
+
+  // Render Add Book page
+  if (currentPage === 'addBook') {
+    return <AddBookForm onAddBook={handleAddBook} onCancel={navigateToCatalog} />;
+  }
 
   // Render Staff Signup page
   if (currentPage === 'staffSignup') {
@@ -304,6 +418,12 @@ function App() {
               className="btn btn-success"
             >
               🔄 Refresh Book List
+            </button>
+            <button 
+              onClick={navigateToAddBook}
+              className="btn btn-warning"
+            >
+              📚 Add New Book
             </button>
             <button 
               onClick={navigateToSignup}
