@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import booksData from './Inventory';
+import './App.css';
 // Books data
 
 // Helper function to group books by genre
@@ -56,88 +57,76 @@ function Signup({ onSignup, onBack }) {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem' }}>
-      <h2>Student Signup</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Student ID:
-          <input
-            type="text"
-            name="studentId"
-            value={form.studentId}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Name:
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Email:
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Parent Email:
-          <input
-            type="email"
-            name="parentEmail"
-            value={form.parentEmail}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      {error && <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-        <button 
-          onClick={handleSubmit} 
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            cursor: 'pointer',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          Sign Up
-        </button>
-        <button 
-          onClick={onBack} 
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            cursor: 'pointer',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          Back to Catalog
-        </button>
+    <div className="app-container">
+      <div className="form-container fade-in-up">
+        <h2 className="form-title">Student Signup</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">
+              Student ID:
+              <input
+                type="text"
+                name="studentId"
+                value={form.studentId}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your student ID"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Name:
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your full name"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Email:
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your email address"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Parent Email:
+              <input
+                type="email"
+                name="parentEmail"
+                value={form.parentEmail}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter parent's email address"
+              />
+            </label>
+          </div>
+          {error && <p className="error-message">{error}</p>}
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">
+              Sign Up
+            </button>
+            <button type="button" onClick={onBack} className="btn btn-secondary">
+              Back to Catalog
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -180,91 +169,77 @@ function StaffSignup({ onSignup, onBack }) {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem' }}>
-      <h2>Staff/Admin Signup</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Name:
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Email:
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Department:
-          <input
-            type="text"
-            name="department"
-            value={form.department}
-            onChange={handleChange}
-            required
-            placeholder="e.g., Library, Administration"
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          />
-        </label>
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Role:
-          <select
-            name="role"
-            value={form.role}
-            onChange={handleChange}
-            required
-            style={{ display: 'block', width: '100%', marginTop: '0.5rem', padding: '0.5rem', boxSizing: 'border-box' }}
-          >
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
-      </div>
-      {error && <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-        <button 
-          onClick={handleSubmit} 
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            cursor: 'pointer',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          Sign Up
-        </button>
-        <button 
-          onClick={onBack} 
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            cursor: 'pointer',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          Back to Catalog
-        </button>
+    <div className="app-container">
+      <div className="form-container fade-in-up">
+        <h2 className="form-title">Staff/Admin Signup</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">
+              Name:
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your full name"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Email:
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your email address"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Department:
+              <input
+                type="text"
+                name="department"
+                value={form.department}
+                onChange={handleChange}
+                required
+                placeholder="e.g., Library, Administration"
+                className="form-input"
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Role:
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                required
+                className="form-select"
+              >
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          </div>
+          {error && <p className="error-message">{error}</p>}
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">
+              Sign Up
+            </button>
+            <button type="button" onClick={onBack} className="btn btn-secondary">
+              Back to Catalog
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -316,93 +291,74 @@ function App() {
 
   // Render Catalog page
   return (
-    <div style={{ padding: '2rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1>Reading Inventory Catalog </h1>
-        <h3 style={{ marginTop: '0.5rem' }}>Welcome to the Library</h3>
-        <h3 style={{ marginTop: '0.5rem', color: '#000000ff' }}>Created and maintained by Capstone Team</h3>
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-          <button 
-            onClick={() => setBooks(booksData)}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              cursor: 'pointer',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px'
-            }}
-          >
-            Refresh Book List
-          </button>
-          <button 
-            onClick={navigateToSignup}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              cursor: 'pointer',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px'
-            }}
-          >
-            Student Signup
-          </button>
-          <button 
-            onClick={navigateToStaffSignup}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              cursor: 'pointer',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px'
-            }}
-          >
-            Admin/Staff Signup
-          </button>
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          {registeredStudents.length > 0 && (
-            <p style={{ color: '#28a745', margin: '0.25rem 0' }}>
-              Registered Students: {registeredStudents.length}
-            </p>
-          )}
-          {registeredStaff.length > 0 && (
-            <p style={{ color: '#17a2b8', margin: '0.25rem 0' }}>
-              Registered Staff: {registeredStaff.length}
-            </p>
-          )}
+    <div className="app-container">
+      <div className="header">
+        <div className="header-content">
+          <h1>📚 Reading Inventory Catalog</h1>
+          <h3>Welcome to the Digital Library</h3>
+          <p className="team-credit">Created and maintained by Capstone Team</p>
+          
+          <div className="btn-group">
+            <button 
+              onClick={() => setBooks(booksData)}
+              className="btn btn-success"
+            >
+              🔄 Refresh Book List
+            </button>
+            <button 
+              onClick={navigateToSignup}
+              className="btn btn-primary"
+            >
+              👨‍🎓 Student Signup
+            </button>
+            <button 
+              onClick={navigateToStaffSignup}
+              className="btn btn-info"
+            >
+              👨‍💼 Admin/Staff Signup
+            </button>
+          </div>
+          
+          <div className="stats">
+            {registeredStudents.length > 0 && (
+              <div className="stat-item stat-students">
+                👥 Registered Students: {registeredStudents.length}
+              </div>
+            )}
+            {registeredStaff.length > 0 && (
+              <div className="stat-item stat-staff">
+                👨‍💼 Registered Staff: {registeredStaff.length}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {Object.keys(booksByGenre).sort().map((genre) => (
-        <div key={genre} style={{ marginBottom: '2rem' }}>
-          <h3>{genre}</h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {booksByGenre[genre].map((book, idx) => (
-              <li key={idx} style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
-                <div style={{ 
-                  width: '60px', 
-                  height: '80px', 
-                  backgroundColor: '#e0e0e0', 
-                  marginRight: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '10px',
-                  color: '#666'
-                }}>
-                  Cover
-                </div>
-                <span>{book.title} by {book.author}</span>
-              </li>
-            ))}
-          </ul>
+      <div className="main-content">
+        {Object.keys(booksByGenre).sort().map((genre, genreIndex) => (
+          <div key={genre} className="genre-section fade-in-up" style={{ animationDelay: `${genreIndex * 0.1}s` }}>
+            <h3 className="genre-title">📖 {genre}</h3>
+            <ul className="book-list">
+              {booksByGenre[genre].map((book, idx) => (
+                <li key={idx} className="book-item">
+                  <div className="book-cover">
+                    📖
+                  </div>
+                  <div className="book-info">
+                    <h4 className="book-title">{book.title}</h4>
+                    <p className="book-author">by {book.author}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        
+        <div className="footer">
+          <h1>💬 If you have any questions, please contact the staff.</h1>
+          <h2>Made with ❤️ by Capstone Team</h2>
         </div>
-      ))}
-      <h1 style={{ textAlign: 'center', marginTop: '4rem', color: '#888' }}> If you have any questions, please contact the staff.</h1>
-      <h2 style={{ textAlign: 'center', marginTop: '1rem', color: '#888' }}> Made with ❤️ by Capstone Team </h2>
+      </div>
     </div>
   );
 }
