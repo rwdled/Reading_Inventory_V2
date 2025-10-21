@@ -67,4 +67,15 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 ### `npm run build` fails to minify
 
+
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+
+PHASE 2:
+create a database to be able to store the Usernames Passwords and Books going in and out
+As more books are added the more we need toadd to the sataic array
+Breaking it up to 3 TODO
+TODO 1: Learn how to use SQL and how to store and encrypt passwords
+TODO 2: Find how to store everything via local or maybe in cloud 
+TODO 3  Start Testing and send to trusted Beta Testers. Launch a Version 3 Correctly spelled and checked.
