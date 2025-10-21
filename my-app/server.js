@@ -33,9 +33,9 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Validate admin keyword if trying to become admin
-    if (userType === 'staff' && role === 'admin' && adminKeyword !== 'nickleback') {
-      return res.status(400).json({ message: 'Invalid admin keyword. Only authorized personnel can become admins.' });
+    // Validate staff keyword for all staff registrations
+    if (userType === 'staff' && adminKeyword !== 'nickleback') {
+      return res.status(400).json({ message: 'Invalid staff keyword. Only authorized personnel can register as staff or admin.' });
     }
 
     // Check if user already exists

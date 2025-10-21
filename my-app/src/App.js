@@ -358,9 +358,9 @@ function StaffSignup({ onSignup, onBack }) {
       return;
     }
 
-    // Check admin keyword if trying to become admin
-    if (form.role === 'admin' && form.adminKeyword !== 'nickleback') {
-      setError('Invalid admin keyword. Please enter the correct keyword to become an admin.');
+    // Check staff keyword for both staff and admin roles
+    if (form.adminKeyword !== 'nickleback') {
+      setError('Invalid staff keyword. Please enter the correct keyword to register as staff or admin.');
       setLoading(false);
       return;
     }
@@ -483,24 +483,22 @@ function StaffSignup({ onSignup, onBack }) {
               </select>
             </label>
           </div>
-          {form.role === 'admin' && (
-            <div className="form-group">
-              <label className="form-label">
-                Admin Keyword:
-                <input
-                  type="password"
-                  name="adminKeyword"
-                  value={form.adminKeyword}
-                  onChange={handleChange}
-                  required={form.role === 'admin'}
-                  className="form-input"
-                  placeholder="Enter admin keyword"
-                  disabled={loading}
-                />
-                <small className="form-help">Enter the special keyword to become an admin</small>
-              </label>
-            </div>
-          )}
+          <div className="form-group">
+            <label className="form-label">
+              Staff Keyword:
+              <input
+                type="password"
+                name="adminKeyword"
+                value={form.adminKeyword}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter staff keyword"
+                disabled={loading}
+              />
+              <small className="form-help">Enter the special keyword to register as staff or admin</small>
+            </label>
+          </div>
           {error && <p className="error-message">{error}</p>}
           <div className="form-actions">
             <button 
