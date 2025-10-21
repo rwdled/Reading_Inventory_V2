@@ -1,0 +1,35 @@
+/* Login component styles */
+.form-footer {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  margin-left: 0.5rem;
+}
+
+.link-button:hover {
+  color: #0056b3;
+}
+
+.link-button:disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.form-input:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

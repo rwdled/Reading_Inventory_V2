@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import booksData from './Inventory';
+import authService from './services/authService';
+import Login from './components/Login';
 import './App.css';
 // Books data
 
@@ -21,10 +23,13 @@ function Signup({ onSignup, onBack }) {
     studentId: '',
     name: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     parentEmail: ''
   });
 
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -33,27 +38,62 @@ function Signup({ onSignup, onBack }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     
     // Basic validation
-    if (!form.studentId || !form.name || !form.email || !form.parentEmail) {
+    if (!form.studentId || !form.name || !form.email || !form.password || !form.confirmPassword || !form.parentEmail) {
       setError('All fields are required');
+      setLoading(false);
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError('Please enter a valid email');
+      setLoading(false);
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.parentEmail)) {
       setError('Please enter a valid parent email');
+      setLoading(false);
       return;
     }
 
-    setError('');
-    onSignup(form);
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userData = {
+        userType: 'student',
+        studentId: form.studentId,
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        parentEmail: form.parentEmail
+      };
+
+      const result = await onSignup(userData);
+      
+      if (!result.success) {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,6 +145,36 @@ function Signup({ onSignup, onBack }) {
           </div>
           <div className="form-group">
             <label className="form-label">
+              Password:
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your password (min 6 characters)"
+                disabled={loading}
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Confirm Password:
+              <input
+                type="password"
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Confirm your password"
+                disabled={loading}
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
               Parent Email:
               <input
                 type="email"
@@ -114,15 +184,25 @@ function Signup({ onSignup, onBack }) {
                 required
                 className="form-input"
                 placeholder="Enter parent's email address"
+                disabled={loading}
               />
             </label>
           </div>
           {error && <p className="error-message">{error}</p>}
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Sign Up
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? 'Signing up...' : 'Sign Up'}
             </button>
-            <button type="button" onClick={onBack} className="btn btn-secondary">
+            <button 
+              type="button" 
+              onClick={onBack} 
+              className="btn btn-secondary"
+              disabled={loading}
+            >
               Back to Catalog
             </button>
           </div>
@@ -231,11 +311,14 @@ function StaffSignup({ onSignup, onBack }) {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     department: '',
     role: 'staff'
   });
 
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -244,22 +327,56 @@ function StaffSignup({ onSignup, onBack }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     
     // Basic validation
-    if (!form.name || !form.email || !form.department) {
+    if (!form.name || !form.email || !form.password || !form.confirmPassword || !form.department) {
       setError('All fields are required');
+      setLoading(false);
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError('Please enter a valid email');
+      setLoading(false);
       return;
     }
 
-    setError('');
-    onSignup(form);
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userData = {
+        userType: 'staff',
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        department: form.department,
+        role: form.role
+      };
+
+      const result = await onSignup(userData);
+      
+      if (!result.success) {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -292,6 +409,37 @@ function StaffSignup({ onSignup, onBack }) {
                 required
                 className="form-input"
                 placeholder="Enter your email address"
+                disabled={loading}
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Password:
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your password (min 6 characters)"
+                disabled={loading}
+              />
+            </label>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Confirm Password:
+              <input
+                type="password"
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Confirm your password"
+                disabled={loading}
               />
             </label>
           </div>
@@ -306,6 +454,7 @@ function StaffSignup({ onSignup, onBack }) {
                 required
                 placeholder="e.g., Library, Administration"
                 className="form-input"
+                disabled={loading}
               />
             </label>
           </div>
@@ -318,6 +467,7 @@ function StaffSignup({ onSignup, onBack }) {
                 onChange={handleChange}
                 required
                 className="form-select"
+                disabled={loading}
               >
                 <option value="staff">Staff</option>
                 <option value="admin">Admin</option>
@@ -326,10 +476,19 @@ function StaffSignup({ onSignup, onBack }) {
           </div>
           {error && <p className="error-message">{error}</p>}
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Sign Up
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? 'Signing up...' : 'Sign Up'}
             </button>
-            <button type="button" onClick={onBack} className="btn btn-secondary">
+            <button 
+              type="button" 
+              onClick={onBack} 
+              className="btn btn-secondary"
+              disabled={loading}
+            >
               Back to Catalog
             </button>
           </div>
@@ -342,23 +501,70 @@ function StaffSignup({ onSignup, onBack }) {
 // Main App Component
 function App() {
   const [books, setBooks] = useState(booksData);
-  const [currentPage, setCurrentPage] = useState('catalog'); // 'catalog', 'signup', 'staffSignup', or 'addBook'
+  const [currentPage, setCurrentPage] = useState('catalog'); // 'catalog', 'login', 'signup', 'staffSignup', or 'addBook'
   const [registeredStudents, setRegisteredStudents] = useState([]);
   const [registeredStaff, setRegisteredStaff] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Initialize authentication on app load
+  useEffect(() => {
+    const initAuth = async () => {
+      const authResult = await authService.init();
+      if (authResult) {
+        setCurrentUser(authService.getCurrentUser());
+        setIsAuthenticated(true);
+      }
+    };
+    initAuth();
+  }, []);
 
   // Group books by genre
   const booksByGenre = groupBooksByGenre(books);
 
-  const handleSignup = (studentData) => {
-    setRegisteredStudents([...registeredStudents, studentData]);
-    alert(`Welcome, ${studentData.name}! You've been successfully registered.`);
-    setCurrentPage('catalog'); // Return to catalog after signup
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setCurrentPage('catalog');
   };
 
-  const handleStaffSignup = (staffData) => {
-    setRegisteredStaff([...registeredStaff, staffData]);
-    alert(`Welcome, ${staffData.name}! You've been successfully registered as ${staffData.role}.`);
-    setCurrentPage('catalog'); // Return to catalog after signup
+  const handleLogout = async () => {
+    await authService.logout();
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setCurrentPage('catalog');
+  };
+
+  const handleSignup = async (userData) => {
+    try {
+      const result = await authService.register(userData);
+      if (result.success) {
+        setRegisteredStudents([...registeredStudents, result.user]);
+        alert(`Welcome, ${result.user.name}! You've been successfully registered.`);
+        setCurrentPage('catalog');
+        return { success: true };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      return { success: false, error: 'Registration failed. Please try again.' };
+    }
+  };
+
+  const handleStaffSignup = async (userData) => {
+    try {
+      const result = await authService.register(userData);
+      if (result.success) {
+        setRegisteredStaff([...registeredStaff, result.user]);
+        alert(`Welcome, ${result.user.name}! You've been successfully registered as ${result.user.role}.`);
+        setCurrentPage('catalog');
+        return { success: true };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      return { success: false, error: 'Registration failed. Please try again.' };
+    }
   };
 
   const handleAddBook = (bookData) => {
@@ -370,6 +576,10 @@ function App() {
     setBooks([...books, newBook]);
     alert(`Book "${bookData.title}" by ${bookData.author} has been added to the catalog!`);
     setCurrentPage('catalog'); // Return to catalog after adding book
+  };
+
+  const navigateToLogin = () => {
+    setCurrentPage('login');
   };
 
   const navigateToSignup = () => {
@@ -388,8 +598,20 @@ function App() {
     setCurrentPage('catalog');
   };
 
-  // Render Add Book page
+  const switchToSignup = () => {
+    setCurrentPage('signup');
+  };
+
+  // Render Login page
+  if (currentPage === 'login') {
+    return <Login onLogin={handleLogin} onBack={navigateToCatalog} onSwitchToSignup={switchToSignup} />;
+  }
+
+  // Render Add Book page (requires authentication)
   if (currentPage === 'addBook') {
+    if (!isAuthenticated) {
+      return <Login onLogin={handleLogin} onBack={navigateToCatalog} onSwitchToSignup={switchToSignup} />;
+    }
     return <AddBookForm onAddBook={handleAddBook} onCancel={navigateToCatalog} />;
   }
 
@@ -412,6 +634,20 @@ function App() {
           <h3>Welcome to the Digital Library</h3>
           <p className="team-credit">Created and maintained by Capstone Team</p>
           
+          {/* Authentication Status */}
+          {isAuthenticated && currentUser ? (
+            <div className="user-info">
+              <p>Welcome, {currentUser.name}! ({currentUser.user_type})</p>
+              <button onClick={handleLogout} className="btn btn-outline">
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="auth-prompt">
+              <p>Please login or signup to access all features</p>
+            </div>
+          )}
+          
           <div className="btn-group">
             <button 
               onClick={() => setBooks(booksData)}
@@ -419,12 +655,21 @@ function App() {
             >
               🔄 Refresh Book List
             </button>
-            <button 
-              onClick={navigateToAddBook}
-              className="btn btn-warning"
-            >
-              📚 Add New Book
-            </button>
+            {isAuthenticated ? (
+              <button 
+                onClick={navigateToAddBook}
+                className="btn btn-warning"
+              >
+                📚 Add New Book
+              </button>
+            ) : (
+              <button 
+                onClick={navigateToLogin}
+                className="btn btn-warning"
+              >
+                🔐 Login to Add Books
+              </button>
+            )}
             <button 
               onClick={navigateToSignup}
               className="btn btn-primary"
@@ -437,6 +682,14 @@ function App() {
             >
               👨‍💼 Admin/Staff Signup
             </button>
+            {!isAuthenticated && (
+              <button 
+                onClick={navigateToLogin}
+                className="btn btn-secondary"
+              >
+                🔑 Login
+              </button>
+            )}
           </div>
           
           <div className="stats">
