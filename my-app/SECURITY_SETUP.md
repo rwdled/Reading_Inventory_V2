@@ -94,12 +94,14 @@ npm start
    - Confirm Password
    - Department
    - Role (Staff or Admin)
+   - **Admin Keyword**: If selecting "Admin" role, enter the special keyword: `nickleback`
 
 2. **Login**: Click "Login" and enter email/password
 
 3. **Features**: 
    - Staff can add new books to the catalog
    - Admin has additional management capabilities
+   - **Admin Access**: Only users with the correct admin keyword can become admins
 
 ## Security Features
 
@@ -123,6 +125,8 @@ npm start
 - Role-based permissions
 - Protected routes for sensitive operations
 - Authentication required for book management
+- **Admin Keyword Protection**: Special keyword "nickleback" required to become admin
+- Prevents unauthorized admin account creation
 
 ## API Endpoints
 

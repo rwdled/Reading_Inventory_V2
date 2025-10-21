@@ -26,11 +26,16 @@ db.init().then(() => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { userType, studentId, name, email, password, parentEmail, department, role } = req.body;
+    const { userType, studentId, name, email, password, parentEmail, department, role, adminKeyword } = req.body;
     
     // Validate required fields
     if (!userType || !name || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Validate admin keyword if trying to become admin
+    if (userType === 'staff' && role === 'admin' && adminKeyword !== 'nickleback') {
+      return res.status(400).json({ message: 'Invalid admin keyword. Only authorized personnel can become admins.' });
     }
 
     // Check if user already exists

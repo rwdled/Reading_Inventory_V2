@@ -314,7 +314,8 @@ function StaffSignup({ onSignup, onBack }) {
     password: '',
     confirmPassword: '',
     department: '',
-    role: 'staff'
+    role: 'staff',
+    adminKeyword: ''
   });
 
   const [error, setError] = useState('');
@@ -357,6 +358,13 @@ function StaffSignup({ onSignup, onBack }) {
       return;
     }
 
+    // Check admin keyword if trying to become admin
+    if (form.role === 'admin' && form.adminKeyword !== 'nickleback') {
+      setError('Invalid admin keyword. Please enter the correct keyword to become an admin.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const userData = {
         userType: 'staff',
@@ -364,7 +372,8 @@ function StaffSignup({ onSignup, onBack }) {
         email: form.email,
         password: form.password,
         department: form.department,
-        role: form.role
+        role: form.role,
+        adminKeyword: form.adminKeyword
       };
 
       const result = await onSignup(userData);
@@ -474,6 +483,24 @@ function StaffSignup({ onSignup, onBack }) {
               </select>
             </label>
           </div>
+          {form.role === 'admin' && (
+            <div className="form-group">
+              <label className="form-label">
+                Admin Keyword:
+                <input
+                  type="password"
+                  name="adminKeyword"
+                  value={form.adminKeyword}
+                  onChange={handleChange}
+                  required={form.role === 'admin'}
+                  className="form-input"
+                  placeholder="Enter admin keyword"
+                  disabled={loading}
+                />
+                <small className="form-help">Enter the special keyword to become an admin</small>
+              </label>
+            </div>
+          )}
           {error && <p className="error-message">{error}</p>}
           <div className="form-actions">
             <button 
