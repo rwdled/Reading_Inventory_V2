@@ -171,8 +171,9 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Serve React app for all other routes
-app.get('*', (req, res) => {
+// Serve React app for all other routes (fallback)
+// Use app.use without a path so we don't trigger path-to-regexp parsing issues for '*'
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
