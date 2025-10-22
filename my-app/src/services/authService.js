@@ -1,15 +1,18 @@
+import { API_BASE_URL } from '../config/api';
+
 // Authentication service for managing user sessions
 class AuthService {
   constructor() {
     this.currentUser = null;
     this.sessionToken = localStorage.getItem('sessionToken');
+    this.baseURL = API_BASE_URL;
   }
 
   // Initialize authentication service
   async init() {
     if (this.sessionToken) {
       try {
-        const response = await fetch('/api/auth/validate', {
+        const response = await fetch(`${this.baseURL}/api/auth/validate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -37,7 +40,7 @@ class AuthService {
   // Login user
   async login(email, password) {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${this.baseURL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +66,7 @@ class AuthService {
   // Register new user
   async register(userData) {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(`${this.baseURL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +90,7 @@ class AuthService {
   async logout() {
     if (this.sessionToken) {
       try {
-        await fetch('/api/auth/logout', {
+        await fetch(`${this.baseURL}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
