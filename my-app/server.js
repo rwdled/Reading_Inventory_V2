@@ -19,6 +19,7 @@ db.init().then(() => {
   console.log('Database initialized successfully');
 }).catch(err => {
   console.error('Database initialization failed:', err);
+  console.log('Server will continue without database features');
 });
 
 // API Routes
@@ -172,7 +173,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Serve React app for all other routes
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
