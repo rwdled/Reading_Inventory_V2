@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 // set up sqlite database
-const dbPath = process.env.DATABASE_URL || './inventory.db';
+const dbPath = process.env.DATABASE_URL || './inventory_new.db';
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database:', err);
@@ -43,7 +43,10 @@ function recreateDatabase() {
             console.error('Error dropping tables:', err);
         } else {
             console.log('Old tables dropped successfully');
-            initializeDatabase();
+            // Add a small delay to ensure tables are dropped
+            setTimeout(() => {
+                initializeDatabase();
+            }, 100);
         }
     });
 }
@@ -54,7 +57,6 @@ function initializeDatabase() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_type TEXT NOT NULL CHECK (user_type IN ('student', 'staff', 'admin')),
         username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
         student_id TEXT,
@@ -238,8 +240,12 @@ async function createUser(userData) {
                 ];
             }
             
+            console.log('Executing SQL:', sql);
+            console.log('With params:', params);
+            
             db.run(sql, params, function(err) {
                 if (err) {
+                    console.error('Database error:', err);
                     reject(err);
                 } else {
                     resolve({
