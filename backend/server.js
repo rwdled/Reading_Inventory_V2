@@ -25,6 +25,35 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 function initializeDatabase() {
+    // First, check if student_id column exists, if not, add it
+    db.get("PRAGMA table_info(users)", (err, result) => {
+        if (err) {
+            console.error('Error checking table info:', err);
+            return;
+        }
+        
+        // Check if student_id column exists
+        db.all("PRAGMA table_info(users)", (err, columns) => {
+            if (err) {
+                console.error('Error getting table info:', err);
+                return;
+            }
+            
+            const hasStudentId = columns.some(col => col.name === 'student_id');
+            
+            if (!hasStudentId) {
+                console.log('Adding student_id column to existing users table...');
+                db.run("ALTER TABLE users ADD COLUMN student_id TEXT", (err) => {
+                    if (err) {
+                        console.error('Error adding student_id column:', err);
+                    } else {
+                        console.log('student_id column added successfully');
+                    }
+                });
+            }
+        });
+    });
+
     const schema = `
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,16 +88,29 @@ function initializeDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-    CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);
-    CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions(session_token);
     `;
+    
     db.exec(schema, (err) => {
         if (err) {
             console.error('Error creating tables:', err);
         } else {
             console.log('Tables created successfully');
         }
+        
+        // Create indexes after tables are created
+        const indexSchema = `
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);
+        CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions(session_token);
+        `;
+        
+        db.exec(indexSchema, (err) => {
+            if (err) {
+                console.error('Error creating indexes:', err);
+            } else {
+                console.log('Indexes created successfully');
+            }
+        });
     });
 }
 
