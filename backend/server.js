@@ -20,40 +20,35 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('Error opening database:', err);
     } else {
         console.log('Connected to SQLite database');
-        initializeDatabase();
+        // Force recreate tables for production
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Production environment detected - recreating database schema');
+            recreateDatabase();
+        } else {
+            initializeDatabase();
+        }
     }
 });
 
-function initializeDatabase() {
-    // First, check if student_id column exists, if not, add it
-    db.get("PRAGMA table_info(users)", (err, result) => {
+function recreateDatabase() {
+    // Drop existing tables and recreate them
+    const dropSchema = `
+    DROP TABLE IF EXISTS user_sessions;
+    DROP TABLE IF EXISTS books;
+    DROP TABLE IF EXISTS users;
+    `;
+    
+    db.exec(dropSchema, (err) => {
         if (err) {
-            console.error('Error checking table info:', err);
-            return;
+            console.error('Error dropping tables:', err);
+        } else {
+            console.log('Old tables dropped successfully');
+            initializeDatabase();
         }
-        
-        // Check if student_id column exists
-        db.all("PRAGMA table_info(users)", (err, columns) => {
-            if (err) {
-                console.error('Error getting table info:', err);
-                return;
-            }
-            
-            const hasStudentId = columns.some(col => col.name === 'student_id');
-            
-            if (!hasStudentId) {
-                console.log('Adding student_id column to existing users table...');
-                db.run("ALTER TABLE users ADD COLUMN student_id TEXT", (err) => {
-                    if (err) {
-                        console.error('Error adding student_id column:', err);
-                    } else {
-                        console.log('student_id column added successfully');
-                    }
-                });
-            }
-        });
     });
+}
 
+function initializeDatabase() {
     const schema = `
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,6 +60,7 @@ function initializeDatabase() {
         student_id TEXT,
         parent_email TEXT,
         department TEXT,
+        role TEXT,
         is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -95,6 +91,9 @@ function initializeDatabase() {
             console.error('Error creating tables:', err);
         } else {
             console.log('Tables created successfully');
+            
+            // After tables are created, check for missing columns and add them
+            checkAndAddMissingColumns();
         }
         
         // Create indexes after tables are created
@@ -111,6 +110,41 @@ function initializeDatabase() {
                 console.log('Indexes created successfully');
             }
         });
+    });
+}
+
+function checkAndAddMissingColumns() {
+    // Check if student_id column exists, if not, add it
+    db.all("PRAGMA table_info(users)", (err, columns) => {
+        if (err) {
+            console.error('Error getting table info:', err);
+            return;
+        }
+        
+        const hasStudentId = columns.some(col => col.name === 'student_id');
+        const hasRole = columns.some(col => col.name === 'role');
+        
+        if (!hasStudentId) {
+            console.log('Adding student_id column to existing users table...');
+            db.run("ALTER TABLE users ADD COLUMN student_id TEXT", (err) => {
+                if (err) {
+                    console.error('Error adding student_id column:', err);
+                } else {
+                    console.log('student_id column added successfully');
+                }
+            });
+        }
+        
+        if (!hasRole) {
+            console.log('Adding role column to existing users table...');
+            db.run("ALTER TABLE users ADD COLUMN role TEXT", (err) => {
+                if (err) {
+                    console.error('Error adding role column:', err);
+                } else {
+                    console.log('role column added successfully');
+                }
+            });
+        }
     });
 }
 
@@ -154,25 +188,66 @@ async function findUserByStudentId(studentId) {
 
 async function createUser(userData) {
     return new Promise((resolve, reject) => {
-        const sql = 'INSERT INTO users (user_type, student_id, username, email, password_hash, parent_email, department, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-        db.run(sql, [
-            userData.userType,
-            userData.studentId,
-            userData.name,
-            userData.email,
-            userData.password_hash,
-            userData.parentEmail,
-            userData.department,
-            userData.role
-        ], function(err) {
+        // First check if role column exists
+        db.all("PRAGMA table_info(users)", (err, columns) => {
             if (err) {
                 reject(err);
-            } else {
-                resolve({
-                    id: this.lastID,
-                    ...userData
-                });
+                return;
             }
+            
+            const hasRole = columns.some(col => col.name === 'role');
+            const hasStudentId = columns.some(col => col.name === 'student_id');
+            
+            let sql, params;
+            
+            if (hasRole && hasStudentId) {
+                // Full schema with all columns
+                sql = 'INSERT INTO users (user_type, student_id, username, email, password_hash, parent_email, department, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+                params = [
+                    userData.userType,
+                    userData.studentId,
+                    userData.name,
+                    userData.email,
+                    userData.password_hash,
+                    userData.parentEmail,
+                    userData.department,
+                    userData.role
+                ];
+            } else if (hasStudentId) {
+                // Schema without role column
+                sql = 'INSERT INTO users (user_type, student_id, username, email, password_hash, parent_email, department) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                params = [
+                    userData.userType,
+                    userData.studentId,
+                    userData.name,
+                    userData.email,
+                    userData.password_hash,
+                    userData.parentEmail,
+                    userData.department
+                ];
+            } else {
+                // Basic schema without student_id or role
+                sql = 'INSERT INTO users (user_type, username, email, password_hash, parent_email, department) VALUES (?, ?, ?, ?, ?, ?)';
+                params = [
+                    userData.userType,
+                    userData.name,
+                    userData.email,
+                    userData.password_hash,
+                    userData.parentEmail,
+                    userData.department
+                ];
+            }
+            
+            db.run(sql, params, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({
+                        id: this.lastID,
+                        ...userData
+                    });
+                }
+            });
         });
     });
 }
