@@ -6,7 +6,7 @@ const getApiUrl = () => {
   }
   
   // For production, use environment variable or default
-  return process.env.REACT_APP_API_URL || 'https://your-backend-url.railway.app';
+  return process.env.REACT_APP_API_URL || 'https://reading-production.up.railway.app';
 };
 
 export const API_BASE_URL = getApiUrl();
