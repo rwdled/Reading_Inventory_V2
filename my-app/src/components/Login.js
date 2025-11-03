@@ -66,7 +66,7 @@ function Login({ onLogin, onBack, onSwitchToSignup }) {
                 onChange={handleChange}
                 required
                 className="form-input"
-                placeholder="Enter your email address"
+                placeholder="Enter your SST student email address"
                 disabled={loading}
               />
             </label>
