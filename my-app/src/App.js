@@ -111,7 +111,7 @@ function Signup({ onSignup, onBack }) {
                 onChange={handleChange}
                 required
                 className="form-input"
-                placeholder="Enter your student ID"
+                placeholder="Enter your seven digit student ID (ex: 1234567)"
               />
             </label>
           </div>
@@ -139,8 +139,9 @@ function Signup({ onSignup, onBack }) {
                 onChange={handleChange}
                 required
                 className="form-input"
-                placeholder="Enter your email address"
+                placeholder="Enter your student email address (ex: 1234567@student.ssttx.org)"
               />
+              <small className="form-help">Enter your student email address (ex: 1234567@student.ssttx.org)</small>
             </label>
           </div>
           <div className="form-group">
