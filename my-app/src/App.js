@@ -69,7 +69,7 @@ function Signup({ onSignup, onBack }) {
     }
 
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match, please try again');
       setLoading(false);
       return;
     }
