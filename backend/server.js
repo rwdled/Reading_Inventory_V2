@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -86,6 +87,17 @@ function initializeDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS book_checkouts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        book_id INTEGER NOT NULL,
+        checkout_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        due_date DATETIME NOT NULL,
+        return_date DATETIME,
+        status TEXT DEFAULT 'active' CHECK (status IN ('active', 'returned', 'overdue')),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (book_id) REFERENCES books (id) ON DELETE CASCADE
+    );
     `;
     
     db.exec(schema, (err) => {
@@ -103,6 +115,9 @@ function initializeDatabase() {
         CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);
         CREATE INDEX IF NOT EXISTS idx_sessions_token ON user_sessions(session_token);
+        CREATE INDEX IF NOT EXISTS idx_checkouts_user_id ON book_checkouts(user_id);
+        CREATE INDEX IF NOT EXISTS idx_checkouts_book_id ON book_checkouts(book_id);
+        CREATE INDEX IF NOT EXISTS idx_checkouts_status ON book_checkouts(status);
         `;
         
         db.exec(indexSchema, (err) => {
@@ -423,12 +438,58 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 
-// Get all books
+// Get all books with checkout info
 app.get('/api/books', (req, res) => {
-  db.all('SELECT * FROM books', [], (err, books) => {
+  const sql = `
+    SELECT 
+      b.*,
+      bc.id as checkout_id,
+      bc.user_id as checkout_user_id,
+      bc.due_date as checkout_due_date,
+      bc.checkout_date,
+      u.name as checkout_student_name,
+      u.email as checkout_student_email,
+      u.student_id as checkout_student_id
+    FROM books b
+    LEFT JOIN book_checkouts bc ON b.id = bc.book_id AND bc.status = 'active'
+    LEFT JOIN users u ON bc.user_id = u.id
+    ORDER BY b.title
+  `;
+  
+  db.all(sql, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ message: 'Database error', error: err.message });
     }
+    
+    // Format books with checkout info
+    const books = rows.map(row => {
+      const book = {
+        id: row.id,
+        title: row.title,
+        author: row.author,
+        genre: row.genre,
+        isbn: row.isbn,
+        availability_status: row.availability_status,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+      
+      // Add checkout info if exists
+      if (row.checkout_id) {
+        book.checkout = {
+          id: row.checkout_id,
+          user_id: row.checkout_user_id,
+          due_date: row.checkout_due_date,
+          checkout_date: row.checkout_date,
+          student_name: row.checkout_student_name,
+          student_email: row.checkout_student_email,
+          student_id: row.checkout_student_id
+        };
+      }
+      
+      return book;
+    });
+    
     res.json(books);
   });
 });
@@ -475,6 +536,433 @@ app.post('/api/books', (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// Import books from Google Sheets (requires staff authentication)
+app.post('/api/books/import-sheets', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const decoded = verifyJWTToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Get user to check if they're staff/admin
+    db.get('SELECT * FROM users WHERE id = ?', [decoded.userId], async (err, user) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error', error: err.message });
+      }
+      if (!user || (user.user_type !== 'staff' && user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Only staff and admin can import books' });
+      }
+
+      const { spreadsheetId, sheetName, apiKey } = req.body;
+
+      if (!spreadsheetId) {
+        return res.status(400).json({ message: 'Spreadsheet ID is required' });
+      }
+
+      try {
+        // For public sheets, we can use the public CSV export or API key
+        // If no API key provided, we'll try to use the public CSV endpoint
+        const range = sheetName ? `${sheetName}!A:Z` : 'Sheet1!A:Z';
+        let response;
+        
+        if (apiKey || process.env.GOOGLE_API_KEY) {
+          // Use Google Sheets API with API key
+          const sheets = google.sheets({ 
+            version: 'v4', 
+            auth: apiKey || process.env.GOOGLE_API_KEY 
+          });
+          
+          response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+          });
+        } else {
+          // Try public CSV export as fallback
+          const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName || 'Sheet1'}`;
+          
+          // Use built-in fetch (Node 18+) or https module (older versions)
+          let csvText;
+          if (typeof fetch !== 'undefined') {
+            // Node 18+ has built-in fetch
+            const csvResponse = await fetch(csvUrl);
+            csvText = await csvResponse.text();
+          } else {
+            // Fall back to https module for older Node versions
+            const https = require('https');
+            csvText = await new Promise((resolve, reject) => {
+              https.get(csvUrl, (res) => {
+                let data = '';
+                res.on('data', (chunk) => { data += chunk; });
+                res.on('end', () => resolve(data));
+                res.on('error', reject);
+              }).on('error', reject);
+            });
+          }
+          
+          // Parse CSV to rows (handle quoted fields properly)
+          const rows = csvText.split('\n')
+            .filter(row => row.trim())
+            .map(row => {
+              const fields = [];
+              let currentField = '';
+              let insideQuotes = false;
+              
+              for (let i = 0; i < row.length; i++) {
+                const char = row[i];
+                if (char === '"') {
+                  insideQuotes = !insideQuotes;
+                } else if (char === ',' && !insideQuotes) {
+                  fields.push(currentField.trim());
+                  currentField = '';
+                } else {
+                  currentField += char;
+                }
+              }
+              fields.push(currentField.trim());
+              return fields;
+            });
+          
+          response = { data: { values: rows } };
+        }
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+          return res.status(400).json({ message: 'No data found in spreadsheet' });
+        }
+
+        // Assume first row is headers: Title, Author, Genre, ISBN
+        const headers = rows[0].map(h => h.toLowerCase().trim());
+        const titleIdx = headers.findIndex(h => h.includes('title'));
+        const authorIdx = headers.findIndex(h => h.includes('author'));
+        const genreIdx = headers.findIndex(h => h.includes('genre') || h.includes('category'));
+        const isbnIdx = headers.findIndex(h => h.includes('isbn'));
+
+        if (titleIdx === -1 || authorIdx === -1) {
+          return res.status(400).json({ message: 'Spreadsheet must have Title and Author columns' });
+        }
+
+        const booksToImport = [];
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row[titleIdx] || !row[authorIdx]) continue; // Skip empty rows
+
+          booksToImport.push({
+            title: row[titleIdx].trim(),
+            author: row[authorIdx].trim(),
+            genre: genreIdx >= 0 && row[genreIdx] ? row[genreIdx].trim() : null,
+            isbn: isbnIdx >= 0 && row[isbnIdx] ? row[isbnIdx].trim() : null
+          });
+        }
+
+        // Insert books into database
+        let imported = 0;
+        let errors = [];
+        for (const book of booksToImport) {
+          db.run(
+            'INSERT OR IGNORE INTO books (title, author, genre, isbn) VALUES (?, ?, ?, ?)',
+            [book.title, book.author, book.genre, book.isbn],
+            function(err) {
+              if (err) {
+                errors.push(`Failed to import "${book.title}": ${err.message}`);
+              } else if (this.changes > 0) {
+                imported++;
+              }
+            }
+          );
+        }
+
+        // Wait a bit for async operations
+        setTimeout(() => {
+          res.json({
+            message: 'Import completed',
+            imported,
+            total: booksToImport.length,
+            errors: errors.length > 0 ? errors : undefined
+          });
+        }, 500);
+
+      } catch (error) {
+        console.error('Google Sheets API error:', error);
+        return res.status(500).json({
+          message: 'Failed to import from Google Sheets',
+          error: error.message
+        });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Checkout a book (student action)
+app.post('/api/books/:bookId/checkout', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const decoded = verifyJWTToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const bookId = parseInt(req.params.bookId);
+
+    // Get user
+    db.get('SELECT * FROM users WHERE id = ?', [decoded.userId], (err, user) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error', error: err.message });
+      }
+      if (!user || user.user_type !== 'student') {
+        return res.status(403).json({ message: 'Only students can checkout books' });
+      }
+
+      // Check if book exists and is available
+      db.get('SELECT * FROM books WHERE id = ?', [bookId], (err, book) => {
+        if (err) {
+          return res.status(500).json({ message: 'Database error', error: err.message });
+        }
+        if (!book) {
+          return res.status(404).json({ message: 'Book not found' });
+        }
+
+        // Check if book is already checked out
+        db.get(
+          'SELECT * FROM book_checkouts WHERE book_id = ? AND status = ?',
+          [bookId, 'active'],
+          (err, existingCheckout) => {
+            if (err) {
+              return res.status(500).json({ message: 'Database error', error: err.message });
+            }
+            if (existingCheckout) {
+              return res.status(400).json({ message: 'Book is already checked out' });
+            }
+
+            // Check if student already has this book
+            db.get(
+              'SELECT * FROM book_checkouts WHERE user_id = ? AND book_id = ? AND status = ?',
+              [decoded.userId, bookId, 'active'],
+              (err, studentCheckout) => {
+                if (err) {
+                  return res.status(500).json({ message: 'Database error', error: err.message });
+                }
+                if (studentCheckout) {
+                  return res.status(400).json({ message: 'You already have this book checked out' });
+                }
+
+                // Calculate due date (14 days from now)
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + 14);
+
+                // Create checkout
+                db.run(
+                  'INSERT INTO book_checkouts (user_id, book_id, due_date) VALUES (?, ?, ?)',
+                  [decoded.userId, bookId, dueDate.toISOString()],
+                  function(err) {
+                    if (err) {
+                      return res.status(500).json({ message: 'Failed to checkout book', error: err.message });
+                    }
+
+                    // Update book status
+                    db.run(
+                      'UPDATE books SET availability_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                      ['checked_out', bookId],
+                      (err) => {
+                        if (err) {
+                          console.error('Error updating book status:', err);
+                        }
+
+                        res.json({
+                          message: 'Book checked out successfully',
+                          checkout: {
+                            id: this.lastID,
+                            bookId,
+                            userId: decoded.userId,
+                            dueDate: dueDate.toISOString()
+                          }
+                        });
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Return a book
+app.post('/api/books/:bookId/return', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const decoded = verifyJWTToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const bookId = parseInt(req.params.bookId);
+
+    // Find active checkout
+    db.get(
+      'SELECT * FROM book_checkouts WHERE book_id = ? AND status = ?',
+      [bookId, 'active'],
+      (err, checkout) => {
+        if (err) {
+          return res.status(500).json({ message: 'Database error', error: err.message });
+        }
+        if (!checkout) {
+          return res.status(404).json({ message: 'No active checkout found for this book' });
+        }
+
+        // Check if user is the one who checked it out or is staff/admin
+        db.get('SELECT * FROM users WHERE id = ?', [decoded.userId], (err, user) => {
+          if (err) {
+            return res.status(500).json({ message: 'Database error', error: err.message });
+          }
+          if (!user) {
+            return res.status(401).json({ message: 'User not found' });
+          }
+
+          if (checkout.user_id !== decoded.userId && user.user_type !== 'staff' && user.role !== 'admin') {
+            return res.status(403).json({ message: 'You can only return books you checked out' });
+          }
+
+          // Update checkout status
+          db.run(
+            'UPDATE book_checkouts SET status = ?, return_date = CURRENT_TIMESTAMP WHERE id = ?',
+            ['returned', checkout.id],
+            (err) => {
+              if (err) {
+                return res.status(500).json({ message: 'Failed to return book', error: err.message });
+              }
+
+              // Update book status
+              db.run(
+                'UPDATE books SET availability_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                ['available', bookId],
+                (err) => {
+                  if (err) {
+                    console.error('Error updating book status:', err);
+                  }
+
+                  res.json({ message: 'Book returned successfully' });
+                }
+              );
+            }
+          );
+        });
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get all rentals (staff/admin only)
+app.get('/api/rentals', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const decoded = verifyJWTToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Check if user is staff/admin
+    db.get('SELECT * FROM users WHERE id = ?', [decoded.userId], (err, user) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error', error: err.message });
+      }
+      if (!user || (user.user_type !== 'staff' && user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Only staff and admin can view rentals' });
+      }
+
+      const sql = `
+        SELECT 
+          bc.*,
+          u.name as student_name,
+          u.email as student_email,
+          u.student_id,
+          b.title,
+          b.author,
+          b.genre
+        FROM book_checkouts bc
+        JOIN users u ON bc.user_id = u.id
+        JOIN books b ON bc.book_id = b.id
+        ORDER BY bc.checkout_date DESC
+      `;
+
+      db.all(sql, [], (err, rentals) => {
+        if (err) {
+          return res.status(500).json({ message: 'Database error', error: err.message });
+        }
+        res.json(rentals);
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get book details with checkout info
+app.get('/api/books/:bookId', (req, res) => {
+  const bookId = parseInt(req.params.bookId);
+  
+  db.get('SELECT * FROM books WHERE id = ?', [bookId], (err, book) => {
+    if (err) {
+      return res.status(500).json({ message: 'Database error', error: err.message });
+    }
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    // Get active checkout info if any
+    db.get(
+      `SELECT bc.*, u.name as student_name, u.email as student_email, u.student_id 
+       FROM book_checkouts bc 
+       JOIN users u ON bc.user_id = u.id 
+       WHERE bc.book_id = ? AND bc.status = ?`,
+      [bookId, 'active'],
+      (err, checkout) => {
+        if (err) {
+          return res.status(500).json({ message: 'Database error', error: err.message });
+        }
+        
+        res.json({
+          ...book,
+          checkout: checkout || null
+        });
+      }
+    );
+  });
 });
 
 // Error handling middleware
