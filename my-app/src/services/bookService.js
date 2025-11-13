@@ -1,5 +1,4 @@
 import { API_BASE_URL } from '../config/api';
-import authService from './authService';
 
 // Book service for managing book operations
 class BookService {
